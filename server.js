@@ -1,4 +1,5 @@
 require('isomorphic-fetch');
+const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 dotenv.config();
 const cors = require('@koa/cors');
@@ -16,13 +17,25 @@ const app = next({ dev });
 const handle = app.getRequestHandler();
 const port = parseInt(process.env.PORT, 10) || 3001;
 const router = new Router();
-
-
 const {
   SHOPIFY_API_SECRET_KEY,
   SHOPIFY_API_KEY,
   APP_NAME,
 } = process.env;
+const connectMongod = async () => {
+    try {
+        await mongoose.connect(
+            `mongodb://localhost:27017/?readPreference=primary&appname=MongoDB%20Compass%20Community&ssl=false`,
+            { useUnifiedTopology: true, useNewUrlParser: true, dbName: "Bulkedit" }
+        );
+    } catch (error) {
+        console.log('mongodb connection failed');
+    }
+};
+connectMongod();
+mongoose.connection.on('error', (error) => {
+    console.log(error, 'mongodb error>>>>>>>>>>');
+});
 app.prepare().then(() => {
   const server = new Koa(app);
 
