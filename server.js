@@ -81,28 +81,28 @@ app.prepare().then(() => {
         scopes: ['read_products', 'write_products'],
         async afterAuth(ctx) {
             const { shop, accessToken } = ctx.session;
-        const shopDetails = await Shop.findOne({ shopOrigin: shop }).exec();
-        if(isEmpty(shopDetails)){
-        const newShop = new Shop({
-            _id: new mongoose.Types.ObjectId(),
-            shopOrigin: shop,
-            accessToken: accessToken,
-            isAppInstalled:true,
-            created_at: new Date(),
-            updated_at: new Date(),
-          });
-          await newShop.save();
-        }else{
-            await Shop.updateOne(
-                { shopOrigin: shop },
-                {
-                  $set: {
+            const shopDetails = await Shop.findOne({ shopOrigin: shop }).exec();
+            if (isEmpty(shopDetails)) {
+                const newShop = new Shop({
+                    _id: new mongoose.Types.ObjectId(),
+                    shopOrigin: shop,
                     accessToken: accessToken,
+                    isAppInstalled: true,
+                    created_at: new Date(),
                     updated_at: new Date(),
-                  },
-                }
-              );
-        }
+                });
+                await newShop.save();
+            } else {
+                await Shop.updateOne(
+                    { shopOrigin: shop },
+                    {
+                        $set: {
+                            accessToken: accessToken,
+                            updated_at: new Date(),
+                        },
+                    }
+                );
+            }
           ctx.redirect(`https://${shop}/admin/apps/${APP_NAME}`);
         }
       })
