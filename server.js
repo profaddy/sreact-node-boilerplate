@@ -10,8 +10,10 @@ const { default: createShopifyAuth } = require('@shopify/koa-shopify-auth');
 const { verifyRequest } = require('@shopify/koa-shopify-auth');
 const session = require('koa-session');
 const next = require('next');
+const Shop = require('./server/models/Shops.js');
 const fs = require('fs');
 const https = require('https');
+const { isEmpty } = require('lodash');
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
 const handle = app.getRequestHandler();
@@ -78,18 +80,29 @@ app.prepare().then(() => {
         secret: SHOPIFY_API_SECRET_KEY,
         scopes: ['read_products', 'write_products'],
         async afterAuth(ctx) {
-          const { shop, accessToken } = ctx.session;
-          ctx.cookies.set("shopOrigin", shop, {
-            httpOnly: false,
-            secure: true,
-            sameSite: 'none'
+            const { shop, accessToken } = ctx.session;
+        const shopDetails = await Shop.findOne({ shopOrigin: shop }).exec();
+        if(isEmpty(shopDetails)){
+        const newShop = new Shop({
+            _id: new mongoose.Types.ObjectId(),
+            shopOrigin: shop,
+            accessToken: accessToken,
+            isAppInstalled:true,
+            created_at: new Date(),
+            updated_at: new Date(),
           });
-          ctx.cookies.set("accessToken", accessToken, {
-            httpOnly: false,
-            secure: true,
-            sameSite: 'none'
-          });
-          console.log("afterAuth");
+          await newShop.save();
+        }else{
+            await Shop.updateOne(
+                { shopOrigin: shop },
+                {
+                  $set: {
+                    accessToken: accessToken,
+                    updated_at: new Date(),
+                  },
+                }
+              );
+        }
           ctx.redirect(`https://${shop}/admin/apps/${APP_NAME}`);
         }
       })
